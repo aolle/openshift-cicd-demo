@@ -106,13 +106,19 @@ command.install() {
 
   info "Initiatlizing git repository in Gitea and configuring webhooks"
   WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n pipelines-as-code -o template --template="{{.spec.host}}"  --ignore-not-found)
-  if [ -z "$WEBHOOK_URL" ]; then 
-      WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
+  if [ -z "$WEBHOOK_URL" ]; then
+      # TODO-1: must be pipelines-as-code-controller
+      WEBHOOK_URL=$(oc get route pipelines-as-code-controller-p -n openshift-pipelines -o template --template="{{.spec.host}}")
+      #WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
+      # TODO-1: delete and must x509
+      oc expose service pipelines-as-code-controller --name=pipelines-as-code-controller-p -n openshift-pipelines || true
   fi
 
   sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" config/gitea-configmap.yaml | oc create -f - -n $cicd_prj
   oc rollout status deployment/gitea -n $cicd_prj
-  sed "s#@webhook-url@#https://$WEBHOOK_URL#g" config/gitea-init-taskrun.yaml | oc create -f - -n $cicd_prj
+  #sed "s#@webhook-url@#https://$WEBHOOK_URL#g" config/gitea-init-taskrun.yaml | oc create -f - -n $cicd_prj
+  # TODO-1: must be https
+  sed "s#@webhook-url@#http://$WEBHOOK_URL#g" config/gitea-init-taskrun.yaml | oc create -f - -n $cicd_prj
 
   sleep 20
 
@@ -127,18 +133,18 @@ command.install() {
   info "Updated pipelinerun values for the demo environment"
   tmp_dir=$(mktemp -d)
   pushd $tmp_dir
-  git clone http://$GITEA_HOSTNAME/gitea/spring-petclinic 
-  cd spring-petclinic 
+  git clone -b cnd http://$GITEA_HOSTNAME/gitea/quarkus-petclinic 
+  cd quarkus-petclinic 
   git config user.email "openshift-pipelines@redhat.com"
   git config user.name "openshift-pipelines"
   cat .tekton/build.yaml | grep -A 2 GIT_REPOSITORY
-  cross_sed "s#https://github.com/siamaksade/spring-petclinic-config#http://$GITEA_HOSTNAME/gitea/spring-petclinic-config#g" .tekton/build.yaml
+  cross_sed "s#https://github.com/aolle/quarkus-petclinic-config#http://$GITEA_HOSTNAME/gitea/quarkus-petclinic-config#g" .tekton/build.yaml
   cat .tekton/build.yaml | grep -A 2 GIT_REPOSITORY
   git status
   git add .tekton/build.yaml
   git commit -m "Updated manifests git url"
-  git remote add auth-origin http://gitea:openshift@$GITEA_HOSTNAME/gitea/spring-petclinic
-  git push auth-origin cicd-demo
+  git remote add auth-origin http://gitea:openshift@$GITEA_HOSTNAME/gitea/quarkus-petclinic
+  git push auth-origin cnd
   popd
 
   info "Configuring pipelines-as-code"
@@ -150,10 +156,10 @@ cat << EOF > /tmp/tmp-pac-repository.yaml
 apiVersion: "pipelinesascode.tekton.dev/v1alpha1"
 kind: Repository
 metadata:
-  name: spring-petclinic
+  name: quarkus-petclinic
   namespace: $cicd_prj
 spec:
-  url: http://$GITEA_HOSTNAME/gitea/spring-petclinic
+  url: http://$GITEA_HOSTNAME/gitea/quarkus-petclinic
   git_provider:
     user: "git"
     url: http://$GITEA_HOSTNAME
@@ -185,22 +191,24 @@ EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: dev-spring-petclinic
+  name: dev-quarkus-petclinic
 spec:
   destination:
     namespace: $dev_prj
   source:
-    repoURL: http://$GITEA_HOSTNAME/gitea/spring-petclinic-config
+    repoURL: http://$GITEA_HOSTNAME/gitea/quarkus-petclinic-config
+    targetRevision: cnd
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: stage-spring-petclinic
+  name: stage-quarkus-petclinic
 spec:
   destination:
     namespace: $stage_prj
   source:
-    repoURL: http://$GITEA_HOSTNAME/gitea/spring-petclinic-config
+    repoURL: http://$GITEA_HOSTNAME/gitea/quarkus-petclinic-config
+    targetRevision: cnd
 EOF
   oc apply -k argo -n $cicd_prj
 
@@ -224,8 +232,8 @@ EOF
 
   Demo is installed! Give it a few minutes to finish deployments and then:
 
-  1) Go to spring-petclinic Git repository in Gitea:
-     http://$GITEA_HOSTNAME/gitea/spring-petclinic.git
+  1) Go to quarkus-petclinic Git repository in Gitea:
+     http://$GITEA_HOSTNAME/gitea/quarkus-petclinic.git
 
   2) Log into Gitea with username/password: gitea/openshift
 
@@ -284,9 +292,9 @@ main
 # apiVersion: "pipelinesascode.tekton.dev/v1alpha1"
 # kind: Repository
 # metadata:
-#   name: spring-petclinic
+#   name: quarkus-petclinic
 # spec:
-#   url: http://gitea-a2-cicd.apps.siamak.devcluster.openshift.com/gitea/spring-petclinic
+#   url: http://gitea-a2-cicd.apps.siamak.devcluster.openshift.com/gitea/quarkus-petclinic
 #   git_provider:
 #     user: "git"
 #     url: http://gitea-a2-cicd.apps.siamak.devcluster.openshift.com

@@ -54,8 +54,8 @@ spec:
           else:
             print("Created admin user {}:{}".format(gitea_user, gitea_pwd))
 
-          # create git repo spring-petclinic
-          data_repo = '{"clone_addr": "https://github.com/siamaksade/spring-petclinic-pac", "uid": 1, "repo_name": "spring-petclinic"}'
+          # create git repo quarkus-petclinic
+          data_repo = '{"clone_addr": "https://github.com/aolle/quarkus-petclinic", "uid": 1, "repo_name": "quarkus-petclinic"}'
           headers = {'Content-Type': 'application/json'}
           resp = requests.post(url = giteaURL + "/api/v1/repos/migrate", headers = headers, auth = (gitea_user, gitea_pwd), data = data_repo)  
 
@@ -63,12 +63,12 @@ spec:
             print("Error creating git repo (status code: {})".format(resp.status_code))
             print(resp.content)
           else:
-            print("Created git repo spring-petclinic")
+            print("Created git repo quarkus-petclinic")
 
-          # set default branch on spring-petclinic git repo 
-          data_branch = '{"default_branch": "cicd-demo"}'
+          # set default branch on quarkus-petclinic git repo 
+          data_branch = '{"default_branch": "cnd"}'
           headers = {'Content-Type': 'application/json'}
-          resp = requests.patch(url = giteaURL + "/api/v1/repos/" + gitea_user + "/spring-petclinic", 
+          resp = requests.patch(url = giteaURL + "/api/v1/repos/" + gitea_user + "/quarkus-petclinic", 
                               headers = headers, 
                               auth = (gitea_user, gitea_pwd), 
                               data = data_branch) 
@@ -77,13 +77,13 @@ spec:
             print("Error configuring the webhook (status code: {})".format(resp.status_code))
             print(resp.content)
           else:
-            print("Set default branch to 'cicd-demo'")
+            print("Set default branch to 'cnd'")
 
 
-          # configure webhook on spring-petclinic
+          # configure webhook on quarkus-petclinic
           data_webhook = '{"type": "gitea", "config": { "url": "' + webhookURL + '", "content_type": "json"}, "events": ["push", "pull_request", "issue_comment"], "active": true}'
           headers = {'Content-Type': 'application/json'}
-          resp = requests.post(url = giteaURL + "/api/v1/repos/" + gitea_user + "/spring-petclinic/hooks", 
+          resp = requests.post(url = giteaURL + "/api/v1/repos/" + gitea_user + "/quarkus-petclinic/hooks", 
                               headers = headers, 
                               auth = (gitea_user, gitea_pwd), 
                               data = data_webhook) 
@@ -94,8 +94,8 @@ spec:
           else:
             print("Configured webhook: " + webhookURL)
 
-          # create git repo spring-petclinic-config
-          data_repo = '{"clone_addr": "https://github.com/siamaksade/spring-petclinic-config.git", "uid": 1, "repo_name": "spring-petclinic-config"}'
+          # create git repo quarkus-petclinic-config
+          data_repo = '{"clone_addr": "https://github.com/aolle/quarkus-petclinic-config.git", "uid": 1, "repo_name": "quarkus-petclinic-config"}'
           headers = {'Content-Type': 'application/json'}
           resp = requests.post(url = giteaURL + "/api/v1/repos/migrate", headers = headers, auth = (gitea_user, gitea_pwd), data = data_repo)  
 
@@ -103,7 +103,7 @@ spec:
             print("Error creating git repo (status code: {})".format(resp.status_code))
             print(resp.content)
           else:
-            print("Created git repo spring-petclinic-config")
+            print("Created git repo quarkus-petclinic-config")
 
           # create token for user
           data_token = '{"name": "cicd"}'
