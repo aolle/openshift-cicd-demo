@@ -86,12 +86,15 @@ command.install() {
   info "Creating namespaces $cicd_prj, $dev_prj, $stage_prj"
   oc get ns $cicd_prj 2>/dev/null  || {
     oc new-project $cicd_prj
+    oc delete limitrange -n $cicd_prj ${cicd_prj}-core-resource-limits || true
   }
   oc get ns $dev_prj 2>/dev/null  || {
     oc new-project $dev_prj
+    oc delete limitrange -n $dev_prj ${dev_prj}-core-resource-limits || true
   }
   oc get ns $stage_prj 2>/dev/null  || {
     oc new-project $stage_prj
+    oc delete limitrange -n $stage_prj ${stage_prj}-core-resource-limits || true
   }
 
   info "Configure service account permissions for pipeline"
@@ -108,8 +111,7 @@ command.install() {
   WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n pipelines-as-code -o template --template="{{.spec.host}}"  --ignore-not-found)
   if [ -z "$WEBHOOK_URL" ]; then
       # TODO-1: must be pipelines-as-code-controller
-      WEBHOOK_URL=$(oc get route pipelines-as-code-controller-p -n openshift-pipelines -o template --template="{{.spec.host}}")
-      #WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
+      WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
       # TODO-1: delete and must x509
       oc expose service pipelines-as-code-controller --name=pipelines-as-code-controller-p -n openshift-pipelines || true
   fi
